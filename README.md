@@ -1,2 +1,34 @@
 # NPM-VersionEnforcer
-Preinstall script for NodeJS packages that enforces module versions across multiple projects
+Preinstall script for NodeJS packages that enforces dependency module versions across multiple projects.
+
+## Description
+This is designed as a utility script that will automatically enforce module versions across multiple Node projects.
+
+It is intended to be invoked by the  *preinstall* hook of **node-install** found in a packages.json file.
+
+It also allows for individual packages to specify modules that do not get installed by this script.
+
+## Usage
+
+### Modify the PACKAGES associative array
+Inside of the modules.js, modify the **PACKAGES** variable to specify module names as keys with the version as their respective values.
+
+Any package.json dependencies found that match anything found within **PACKAGES** will be installed according to the specified version.
+
+### Add this script into packages.json of your project(s)
+	...
+	"scripts" {
+				"preinstall": "node ../modules.js"
+				...
+			}
+	...
+	
+#### OPTIONAL: You can pass in an array, delimited by commas, to specify modules that should be enforced
+	...
+	"scripts" {
+				"preinstall": "node ../modules.js mobx,react-scripts,d3"
+				...
+			}
+	...
+	
+### Run normal node installs to execute (npm install)
