@@ -6,16 +6,14 @@ This is designed as a utility script that will automatically enforce module vers
 
 It is intended to be invoked by the  *preinstall* hook of **node-install** found in a packages.json file.
 
-It also allows for individual packages to specify modules that do not get installed by this script.
-
 ## Usage
 
-### Modify the PACKAGES associative array
+### 1) Modify the PACKAGES associative array
 Inside of the modules.js, modify the **PACKAGES** variable to specify module names as keys with the version as their respective values.
 
 Any package.json dependencies found that match anything found within **PACKAGES** will be installed according to the specified version.
 
-### Add this script into packages.json of your project(s)
+### 2) Add this script into packages.json of your project(s)
 	...
 	"scripts" {
 				"preinstall": "node ../modules.js"
@@ -31,4 +29,4 @@ Any package.json dependencies found that match anything found within **PACKAGES*
 			}
 	...
 	
-### Run normal node installs to execute (npm install)
+### 3) Run normal node installs to execute (npm install)
