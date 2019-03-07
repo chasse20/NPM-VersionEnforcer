@@ -112,7 +112,7 @@ function onNodeJSON( tOut )
 	{
 		// Create ignore list
 		const tempIgnored = {};
-		if ( process.argv.length === 3 )
+		if ( process.argv.length >= 3 )
 		{
 			const tempIgnoredArray = process.argv[2].split( "," );
 			for ( let i = ( tempIgnoredArray.length - 1 ); i >= 0; --i )
