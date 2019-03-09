@@ -103,7 +103,7 @@ function onDependency()
 
 /**
 *	Sets up all of the necessary Node module dependencies that need to be installed or reinstalled, and then processes them.
-*	@param {string} Raw text of Node package JSON
+*	@param {string} tOut Raw text of Node package JSON
 */
 function onNodeJSON( tOut )
 {
