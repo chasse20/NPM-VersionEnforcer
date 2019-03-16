@@ -29,7 +29,17 @@ const EXEC = require( "child_process" ).exec;
 */
 const PACKAGES =
 {
-	"mobx": "5.7.0"
+	"mobx": "5.7.0",
+	"ajv": "6.6.1",
+	"d3": "5.7.0",
+	"d3-force-3d": "2.0.1",
+	"file-saver": "2.0.0",
+	"mobx": "5.7.0",
+	"mobx-react": "5.4.2",
+	"react": "16.6.3",
+	"react-dom": "16.6.3",
+	"react-router-dom": "4.3.1",
+	"react-scripts": "2.1.2"
 };
 
 /**
@@ -96,6 +106,11 @@ function onDependency()
 						execute( "npm install --save-exact " + tempName + "@" + tempVersion, onDependency );
 					}
 				);
+			}
+			// Continue to next
+			else
+			{
+				onDependency();
 			}
 		}
 	}
