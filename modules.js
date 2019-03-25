@@ -2,7 +2,7 @@
 *	@file Preinstall script for NodeJS packages that enforces unified module versions across multiple projects.
 *	
 *	Usage:
-*		1) Modify the PACKAGES hash object to set your desired modules and versions
+*		1) Modify the Run function argument at the bottom of the file to set your desired modules and versions
 *		2) Call this script as part of a package.json preinstall script:
 *			"scripts" {
 *				"preinstall": "node ../modules.js"
@@ -18,102 +18,47 @@
 */
 
 /**
+*	Utility module required to transform the child process into a promise
+*	@type {Function} 
+*/
+const UTIL = require( "util" );
+
+/**
 *	Node shell for executing commands
-*	@type {ChildProcess} 
+*	@type {Function} 
 */
-const EXEC = require( "child_process" ).exec;
+const EXEC = UTIL.promisify( require( "child_process" ).exec );
 
 /**
-*	Associative array with module names as keys and their desired version numbers as values. Modify this for your own modules that you want to enforce.
-*	@type {Object} 
-*/
-const PACKAGES =
-{
-	"mobx": "5.7.0"
-};
-
-/**
-*	Associative array that gets populated with existing Node dependencies whenever "npm install" gets called from a project. Key is module name.
-*	@type {Object} 
-*/
-var dependencies = null;
-
-/**
-*	Array that gets populated with module names that need to be installed recursively.
-*	@type {string[]} 
-*/
-var moduleNames = null;
-
-/**
-*	Callback for returning the result of a shell command.
-*	@callback shellCallback
-*	@param {Object} result
-*/
-
-/**
-*	Runs a shell command and then invokes a callback.
+*	Runs a shell command and returns a Promise
 *	@param {string} tCommand Command to execute
-*	@param {shellCallback} tCallback Callback for returning the result of the command
+*	@return {object} Promise with stdout and stderror properties
 */
-function execute( tCommand, tCallback )
+async function Execute( tCommand )
 {
 	console.log( "Executing: " + tCommand );
 	
-	EXEC( tCommand, { maxBuffer: 5000 * 1024 },
-		( tError, tOut ) =>
-		{
-			tCallback( tOut );
-		}
-	);
+	return await EXEC( tCommand, { maxBuffer: 5000 * 1024 } );
 };
 
 /**
-*	Handles the installation of specific module versions that were declared in the moduleNames array.
+*	Enforces input package versions of packages that aren't marked for ignore
+*	@param {object} tPackages Associative array of packages to enforce with the key as the package name and value as version
 */
-function onDependency()
+async function Run( tPackages )
 {
-	if ( dependencies !== null && moduleNames !== null )
+	var tempDependencies = null;
+	try
 	{
-		const tempLength = moduleNames.length;
-		if ( tempLength > 0 )
-		{
-			const tempName = moduleNames[ tempLength - 1 ];
-			const tempVersion = PACKAGES[ tempName ];
-			--moduleNames.length;
-			
-			// Install if not already
-			const tempModule = dependencies[ tempName ];
-			if ( tempModule.version === undefined )
-			{
-				execute( "npm install --save-exact " + tempName + "@" + tempVersion, onDependency );
-			}
-			// Install correct version if it's wrong
-			else if ( tempModule.version !== tempVersion )
-			{
-				execute( "npm remove " + tempName,
-					( tOut ) =>
-					{
-						execute( "npm install --save-exact " + tempName + "@" + tempVersion, onDependency );
-					}
-				);
-			}
-			// Continue to next
-			else
-			{
-				onDependency();
-			}
-		}
+		const { stdout, stderr } = await Execute( "npm ls --json --depth=0" );
+		tempDependencies = JSON.parse( stdout ).dependencies;
 	}
-};
-
-/**
-*	Sets up all of the necessary Node module dependencies that need to be installed or reinstalled, and then processes them.
-*	@param {string} tOut Raw text of Node package JSON
-*/
-function onNodeJSON( tOut )
-{
-	dependencies = JSON.parse( tOut ).dependencies;
-	if ( dependencies != null )
+	catch ( tError )
+	{
+		tempDependencies = JSON.parse( tError.stdout ).dependencies;
+	}
+	
+	if ( tempDependencies != null )
 	{
 		// Create ignore list
 		const tempIgnored = {};
@@ -127,26 +72,77 @@ function onNodeJSON( tOut )
 		}
 		
 		// Add modules if they aren't ignored and are defined in the packages
-		for ( let tempName in dependencies )
+		var tempModuleNames = null;
+		for ( let tempName in tempDependencies )
 		{
-			if ( tempIgnored[ tempName ] === undefined && PACKAGES[ tempName ] !== undefined )
+			if ( tempIgnored[ tempName ] === undefined && tPackages[ tempName ] !== undefined )
 			{
-				if ( moduleNames === null )
+				if ( tempModuleNames === null )
 				{
-					moduleNames = [];
+					tempModuleNames = [];
 				}
 				
-				moduleNames.push( tempName );
+				tempModuleNames.push( tempName );
 			}
 		}
 		
 		// Process modules
-		if ( moduleNames !== null )
+		if ( tempModuleNames !== null )
 		{
-			onDependency();
+			const tempListLength = tempModuleNames.length;
+			for ( let i = 0; i < tempListLength; ++i )
+			{
+				let tempName = tempModuleNames[i];
+				let tempModule = tempDependencies[ tempName ];
+				
+				// Install if not already
+				if ( tempModule.version === undefined )
+				{
+					try
+					{
+						await Execute( "npm install --save-exact " + tempName + "@" + tPackages[ tempName ] );
+					}
+					catch ( tError )
+					{
+						console.log( tError );
+					}
+				}
+				// Install correct version if it's wrong
+				else
+				{
+					let tempVersion = tPackages[ tempName ];
+					if ( tempModule.version !== tempVersion )
+					{
+						try
+						{
+							await Execute( "npm remove " + tempName );
+							await Execute( "npm install --save-exact " + tempName + "@" + tempVersion );
+						}
+						catch ( tError )
+						{
+							console.log( tError );
+						}
+					}
+				}
+			}
 		}
 	}
 };
 
-// Run
-execute( "npm ls --json --depth=0", onNodeJSON );
+/*
+*	EDIT THE PACKAGES AND VERSIONS INSIDE THE ASSOCIATIVE ARRAY BELOW
+*/
+Run(
+	{
+		"ajv": "6.6.1",
+		"d3": "5.7.0",
+		"d3-force-3d": "2.0.1",
+		"file-saver": "2.0.0",
+		"mobx": "5.7.0",
+		"mobx-react": "5.4.2",
+		"react": "16.6.3",
+		"react-dom": "16.6.3",
+		"react-router-dom": "4.3.1",
+		"react-scripts": "2.1.2"
+	}
+);
