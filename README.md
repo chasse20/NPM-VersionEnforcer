@@ -9,9 +9,9 @@ It is intended to be invoked by the  *preinstall* hook of **node-install** found
 ## USAGE
 
 ### 1) Modify the PACKAGES associative array
-Inside of the modules.js, modify the **PACKAGES** variable to specify module names as keys with the version as their respective values.
+Inside of the modules.js, modify the **RUN** function's argument to specify module names as keys with the version as their respective values.
 
-Any package.json dependencies found that match anything found within **PACKAGES** will be installed according to the specified version.
+Any package.json dependencies found that match anything found within **RUN** function's argument will be installed according to the specified version.
 
 ### 2) Add this script into packages.json of your project(s)
 	...
